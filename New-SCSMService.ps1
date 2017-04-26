@@ -1,6 +1,6 @@
-Function Set-SCSMService
+Function Set-SCSMServiceRelatedService
 {
-    [CmdletBindin()]
+    [CmdletBinding()]
     Param([string]$Path)
 try
     {
@@ -78,7 +78,7 @@ foreach ($service in $importFields)
 
 Function New-SCSMService
 {
-      [CmdletBindin()]
+      [CmdletBinding()]
       Param([string]$Path)
     
 try
@@ -126,8 +126,90 @@ foreach ($service in $importFields)
     #$serviceCustomerRel = New-SCSMRelationshipObject -Relationship $serviceCustomerClass -Source $obj -Target $serviceCustomerObj -Bulk -PassThru
     }
     }
-    
-    
-    
+}
+
+Function Set-SCSMServiceRelatedItems
+{
+    [CmdletBinding()]
+    Param([string]$ComputerName)
+
+    $class = Get-SCSMClass -Name "Microsoft.SystemCenter.BusinessService"
+
+    $groupClass = Get-SCSMClass -Name "Microsoft.SystemCenter.ConfigItemGroup"
+
+    $serviceRel = Get-SCSMRelationshipClass -Name "System.ConfigItemRelatesToConfigItem"
+
+    $compClass = Get-SCSMClass -Name "Microsoft.Windows.Computer" | Where-Object {$_.displayName -eq "Windows Computer"}
+
+    $bServiceGroup = Get-SCSMObject -Class $class
+
+foreach ($bService in $bServiceGroup)
+    {
+
+    $ciGroup = Get-SCSMObject -Class $groupClass -Filter "DisplayName -eq $($bService.displayname)"
+
+    $groupObjects = Get-SCSMRelatedObject -SMObject $ciGroup
+
+    $serviceObjects = Get-SCSMRelatedObject -SMObject $bService -Relationship $serviceRel
+
+    # PowerShell Version doesn't support newer array evaluation so put all the principal names in a new array
+
+    $serviceObjectArray = @()
+
+    foreach ($obj in $serviceObjects)
+        {
+        $serviceObjectArray += $obj.PrincipalName
+        }
+
+    $groupObjectArray = @()
+
+    foreach ($obj in $groupObjects)
+        {
+        $groupObjectArray += $obj.PrincipalName
+        }
+
+    # Determine objects to add to Service from Group
+
+    $addObjects = @()
+
+    foreach ($obj in $groupObjectArray)
+        {
+        if (!($serviceObjectArray -contains $obj))
+            {
+            Write-Output "Server: $obj needs to be added to the business service"
+            $addObjects += $obj
+            }
+        }
+        
+    #Determine objects to remove
+
+    $removeObjects = @()
+
+    foreach ($obj in $serviceObjectArray)
+        {
+        if (!($groupObjectArray -contains $obj))
+            {
+            $removeObjects += $obj
+            Write-Output "Server: $obj needs to be removed from the service"
+            }
+        }
+        
+    # Add missing objects
+
+    foreach ($obj in $addObjects)
+        {
+        $compObj = Get-SCSMObject -Class $compClass -Filter "PrincipalName -eq $obj"
+        $rel = New-SCSMRelationshipObject -Relationship $serviceRel -Source $bService -Target $compObj -Bulk -PassThru
+        }
+
+    # Remove missing objects
+
+    foreach ($obj in $removeObjects)
+        {
+        $compObj = Get-SCSMObject -Class $compClass -Filter "PrincipalName -eq $obj"
+        $rel = Get-SCSMRelationshipObject -Relationship $serviceRel | Where-Object {($_.TargetObject -like "$obj*") -or ($_.TargetObject -like "$($obj.Split(".")[0])*")}
+        $process = Remove-SCSMRelationshipObject -SMObject $rel
+        }
+    }
 }
     
