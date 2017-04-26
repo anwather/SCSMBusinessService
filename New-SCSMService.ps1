@@ -1,4 +1,4 @@
-Function New-SCSMService
+Function Set-SCSMService
 {
     [CmdletBindin()]
     Param([string]$Path)
@@ -74,5 +74,60 @@ foreach ($service in $importFields)
         
         }
     }
+}
+
+Function New-SCSMService
+{
+      [CmdletBindin()]
+      Param([string]$Path)
+    
+try
+    {
+        $importFields = Import-Csv -Path $Path -ErrorAction STOP
+    }
+catch
+    {
+        Write-Error "CSV File does not exist"
+        exit 1;
+    }
+
+foreach ($service in $importFields)
+    {
+    
+   #Determine if the service exists
+   
+   $class = Get-SCSMClass -Name "Microsoft.SystemCenter.BusinessService"
+   #$groupClass = Get-SCSMClass -Name "System.Domain.User"
+  # $serviceOwnerClass = Get-SCSMRelationshipClass -Name "System.ConfigItemOwnedByUser"
+   #$serviceCustomerClass = Get-SCSMRelationshipClass -Name "System.ServiceImpactsUser"
+   
+   $guid = [guid]::NewGuid()
+   
+   # Create the object if it doesn't exist
+   if (!(Get-SCSMObject -Class $class -Filter "DisplayName -eq ""$($service.DisplayName)"""))
+    {
+    $props = @{
+        "DisplayName" = $service.DisplayName
+        #"Classification" = $service.Classification 
+        #"Priority" = $service.Priority
+        #"Status" = $service.Status
+        #"ServiceID" = $guid.ToString()
+       # "Organization" = $service.Organization
+       # "Availability" = $service.Availability
+        }
+    $obj = New-SCSMObject -Class $class -PropertyHashtable $props -PassThru
+    
+    #$serviceOwnerObj = Get-SCSMObject -Class $groupClass -Filter "UserName -eq ""$($service.ServiceOwner)"""
+    
+   # $serviceOwnerRel = New-SCSMRelationshipObject -Relationship $serviceOwnerClass -Source $obj -Target $serviceOwnerObj -Bulk -PassThru
+    
+    #$serviceCustomerObj = Get-SCSMObject -Class $groupClass -Filter "UserName -eq ""$($service.ServiceCustomer)"""
+    
+    #$serviceCustomerRel = New-SCSMRelationshipObject -Relationship $serviceCustomerClass -Source $obj -Target $serviceCustomerObj -Bulk -PassThru
+    }
+    }
+    
+    
+    
 }
     
