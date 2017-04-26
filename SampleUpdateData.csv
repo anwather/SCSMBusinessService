@@ -1,2 +1,2 @@
-DisplayName,
-SampleService
+DisplayName,RelatedService
+SampleService,Server1;Server2;Server3
