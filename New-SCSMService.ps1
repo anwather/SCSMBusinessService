@@ -1,6 +1,10 @@
+Function New-SCSMService
+{
+    [CmdletBindin()]
+    Param([string]$Path)
 try
     {
-        $importFields = Import-Csv -Path "D:\_Source Files\Business Service List\bs.csv" -ErrorAction STOP
+        $importFields = Import-Csv -Path $Path -ErrorAction STOP
     }
 catch
     {
@@ -18,7 +22,7 @@ foreach ($service in $importFields)
         
         $bServiceGroup = Get-SCSMObject -Class $class -Filter "DisplayName -eq ""$($service.DisplayName)"""
         
-        $bServiceObjects = Get-SCSMRelationshipObject -Relationship $serviceRel | Where {($_.TargetObject).DisplayName -eq $service.DisplayName}
+        $bServiceObjects = Get-SCSMRelationshipObject -Relationship $serviceRel | Where-Object {($_.TargetObject).DisplayName -eq $service.DisplayName}
         
         $bServiceArray = @()
         
@@ -57,17 +61,18 @@ foreach ($service in $importFields)
          
          foreach ($obj in $addObjects)
             {
-            $newServiceGroup = get-SCSMObject -Class $class -Filter "DisplayName -eq $obj"
+            $newServiceGroup = Get-SCSMObject -Class $class -Filter "DisplayName -eq $obj"
             $rel = New-SCSMRelationshipObject -Relationship $serviceRel -Source $newServiceGroup -Target $bServiceGroup -Bulk -PassThru
             }
             
          foreach ($obj in $removeObjects)
             {
             $newServiceGroup = Get-SCSMObject -Class $class -Filter "DisplayName -eq $obj"
-            $rel = Get-SCSMRelationshipObject -Relationship $serviceRel | Where {($($_.SourceObject).DisplayName -eq $($newServiceGroup.DisplayName)) -and ($($_.TargetObject).DisplayName -eq $($bServiceGroup.DisplayName))}
+            $rel = Get-SCSMRelationshipObject -Relationship $serviceRel | Where-Object {($($_.SourceObject).DisplayName -eq $($newServiceGroup.DisplayName)) -and ($($_.TargetObject).DisplayName -eq $($bServiceGroup.DisplayName))}
             $rem = Remove-SCSMRelationshipObject -SMObject $rel
             }
         
         }
     }
+}
     
