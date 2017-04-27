@@ -135,6 +135,8 @@ Function Set-SCSMServiceRelatedItems
 
     $class = Get-SCSMClass -Name "Microsoft.SystemCenter.BusinessService"
 
+    $computerGroupClass = Get-SCSMClass -Name "Microsoft.SystemCenter.Service.ComputersGroup"
+
     $groupClass = Get-SCSMClass -Name "Microsoft.SystemCenter.ConfigItemGroup"
 
     $serviceRel = Get-SCSMRelationshipClass -Name "System.ConfigItemRelatesToConfigItem"
